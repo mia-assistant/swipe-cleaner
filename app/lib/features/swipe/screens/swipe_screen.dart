@@ -31,6 +31,27 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
     });
   }
 
+  /// Show exit confirmation when user has swiped files
+  Future<bool> _onWillPop() async {
+    final swipeState = ref.read(swipeFilesProvider);
+    
+    // No progress to lose - allow exit
+    if (swipeState.currentIndex == 0 && swipeState.toDelete.isEmpty) {
+      return true;
+    }
+
+    final shouldExit = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ExitConfirmationSheet(
+        filesReviewed: swipeState.currentIndex,
+        filesToDelete: swipeState.toDelete.length,
+      ),
+    );
+
+    return shouldExit ?? false;
+  }
+
   void _swipeLeft() {
     _stackKey.currentState?.swipe(SwipeDirection.left);
   }
@@ -53,7 +74,16 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
     final folderState = ref.watch(folderProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -76,6 +106,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
       ),
       body: _buildBody(context, swipeState, theme),
       bottomNavigationBar: _buildBottomBar(context, swipeState, theme),
+    ),
     );
   }
 
@@ -347,6 +378,130 @@ class _SwipeButton extends StatelessWidget {
               ),
         ),
       ],
+    );
+  }
+}
+
+/// Bottom sheet for confirming exit with progress
+class _ExitConfirmationSheet extends StatelessWidget {
+  final int filesReviewed;
+  final int filesToDelete;
+
+  const _ExitConfirmationSheet({
+    required this.filesReviewed,
+    required this.filesToDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.all(AppConstants.spacingMd),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(AppConstants.spacingLg),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: AppConstants.spacingLg),
+
+          // Icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.delete(context).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.exit_to_app_rounded,
+              color: AppColors.delete(context),
+              size: 28,
+            ),
+          ),
+
+          const SizedBox(height: AppConstants.spacingMd),
+
+          // Title
+          Text(
+            'Leave without saving?',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: AppConstants.spacingSm),
+
+          // Progress info
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.spacingLg,
+            ),
+            child: Text(
+              filesToDelete > 0
+                  ? 'You\'ve reviewed $filesReviewed files and marked $filesToDelete for deletion.'
+                  : 'You\'ve reviewed $filesReviewed files.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.muted(context),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: AppConstants.spacingLg),
+
+          // Buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.spacingMd,
+            ),
+            child: Column(
+              children: [
+                // Continue swiping
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accent(context),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppConstants.spacingMd,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.radiusButton,
+                        ),
+                      ),
+                    ),
+                    child: const Text('Continue Swiping'),
+                  ),
+                ),
+
+                const SizedBox(height: AppConstants.spacingSm),
+
+                // Exit anyway
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.delete(context),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppConstants.spacingMd,
+                      ),
+                    ),
+                    child: const Text('Exit Anyway'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppConstants.spacingMd),
+        ],
+      ),
     );
   }
 }
