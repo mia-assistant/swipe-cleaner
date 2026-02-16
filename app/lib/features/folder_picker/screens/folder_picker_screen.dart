@@ -5,14 +5,68 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../swipe/providers/swipe_files_provider.dart';
+import '../../swipe/services/session_storage_service.dart';
 import '../providers/folder_provider.dart';
 
 /// Screen for selecting a folder to clean
-class FolderPickerScreen extends ConsumerWidget {
+class FolderPickerScreen extends ConsumerStatefulWidget {
   const FolderPickerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FolderPickerScreen> createState() => _FolderPickerScreenState();
+}
+
+class _FolderPickerScreenState extends ConsumerState<FolderPickerScreen> {
+  SwipeSession? _savedSession;
+  bool _checkingSession = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForSavedSession();
+  }
+
+  Future<void> _checkForSavedSession() async {
+    final session = await SessionStorageService.loadSession();
+    if (mounted) {
+      setState(() {
+        _savedSession = session;
+        _checkingSession = false;
+      });
+    }
+  }
+
+  Future<void> _resumeSession() async {
+    if (_savedSession == null) return;
+
+    // Set folder state
+    ref.read(folderProvider.notifier).setFolder(
+          _savedSession!.folderUri,
+          _savedSession!.folderName,
+        );
+
+    // Navigate and restore
+    if (mounted) {
+      context.go('/swipe');
+      // Restore after navigation
+      Future.microtask(() {
+        ref.read(swipeFilesProvider.notifier).restoreSession(_savedSession!);
+      });
+    }
+  }
+
+  Future<void> _discardSession() async {
+    await SessionStorageService.clearSession();
+    if (mounted) {
+      setState(() {
+        _savedSession = null;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final folderState = ref.watch(folderProvider);
     final theme = Theme.of(context);
 
@@ -29,6 +83,16 @@ class FolderPickerScreen extends ConsumerWidget {
           child: Column(
             children: [
               const Spacer(flex: 2),
+
+              // Saved session card
+              if (!_checkingSession && _savedSession != null) ...[
+                _SavedSessionCard(
+                  session: _savedSession!,
+                  onResume: _resumeSession,
+                  onDiscard: _discardSession,
+                ),
+                const SizedBox(height: AppConstants.spacingXl),
+              ],
 
               // Folder Icon
               Container(
@@ -118,7 +182,8 @@ class FolderPickerScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(AppConstants.spacingMd),
                   decoration: BoxDecoration(
                     color: AppColors.delete(context).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusCard),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusCard),
                   ),
                   child: Row(
                     children: [
@@ -152,6 +217,8 @@ class FolderPickerScreen extends ConsumerWidget {
                         final success =
                             await ref.read(folderProvider.notifier).pickFolder();
                         if (success && context.mounted) {
+                          // Clear any saved session when starting fresh
+                          await SessionStorageService.clearSession();
                           context.go('/swipe');
                         }
                       },
@@ -193,6 +260,100 @@ class FolderPickerScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Card showing saved session with resume/discard options
+class _SavedSessionCard extends StatelessWidget {
+  final SwipeSession session;
+  final VoidCallback onResume;
+  final VoidCallback onDiscard;
+
+  const _SavedSessionCard({
+    required this.session,
+    required this.onResume,
+    required this.onDiscard,
+  });
+
+  String _formatTimeAgo(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppConstants.spacingMd),
+      decoration: BoxDecoration(
+        color: AppColors.accent(context).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(AppConstants.radiusCard),
+        border: Border.all(
+          color: AppColors.accent(context).withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.history_rounded,
+                color: AppColors.accent(context),
+                size: 20,
+              ),
+              const SizedBox(width: AppConstants.spacingXs),
+              Text(
+                'Continue where you left off?',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.accent(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.spacingSm),
+          Text(
+            '${session.folderName} · ${session.totalReviewed} files reviewed · ${_formatTimeAgo(session.savedAt)}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.muted(context),
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacingMd),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onDiscard,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.muted(context),
+                    side: BorderSide(
+                      color: AppColors.muted(context).withOpacity(0.3),
+                    ),
+                  ),
+                  child: const Text('Discard'),
+                ),
+              ),
+              const SizedBox(width: AppConstants.spacingSm),
+              Expanded(
+                child: FilledButton(
+                  onPressed: onResume,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.accent(context),
+                  ),
+                  child: const Text('Resume'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

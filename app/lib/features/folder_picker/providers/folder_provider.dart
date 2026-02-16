@@ -123,8 +123,8 @@ class FolderNotifier extends StateNotifier<FolderState> {
   }
 
   /// Sets the folder directly (for testing or restoring state)
-  void setFolder(String path) {
-    final folderName = _safService.getFolderName(path);
+  void setFolder(String path, [String? name]) {
+    final folderName = name ?? _safService.getFolderName(path);
     state = state.copyWith(
       folderPath: path,
       folderName: folderName,

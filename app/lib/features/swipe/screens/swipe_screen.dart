@@ -61,6 +61,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
       builder: (context) => _ExitConfirmationSheet(
         filesReviewed: swipeState.currentIndex,
         filesToDelete: swipeState.toDelete.length,
+        onSaveAndExit: () {
+          ref.read(swipeFilesProvider.notifier).saveSession();
+        },
       ),
     );
 
@@ -403,10 +406,12 @@ class _SwipeButton extends StatelessWidget {
 class _ExitConfirmationSheet extends StatelessWidget {
   final int filesReviewed;
   final int filesToDelete;
+  final VoidCallback onSaveAndExit;
 
   const _ExitConfirmationSheet({
     required this.filesReviewed,
     required this.filesToDelete,
+    required this.onSaveAndExit,
   });
 
   @override
@@ -498,18 +503,44 @@ class _ExitConfirmationSheet extends StatelessWidget {
 
                 const SizedBox(height: AppConstants.spacingSm),
 
+                // Save and continue later
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      onSaveAndExit();
+                      Navigator.of(context).pop(true);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.accent(context),
+                      side: BorderSide(color: AppColors.accent(context)),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppConstants.spacingMd,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.radiusButton,
+                        ),
+                      ),
+                    ),
+                    child: const Text('Continue Later'),
+                  ),
+                ),
+
+                const SizedBox(height: AppConstants.spacingSm),
+
                 // Exit anyway
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.delete(context),
+                      foregroundColor: AppColors.muted(context),
                       padding: const EdgeInsets.symmetric(
                         vertical: AppConstants.spacingMd,
                       ),
                     ),
-                    child: const Text('Exit Anyway'),
+                    child: const Text('Discard Progress'),
                   ),
                 ),
               ],

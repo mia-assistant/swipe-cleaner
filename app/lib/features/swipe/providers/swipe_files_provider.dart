@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../folder_picker/providers/folder_provider.dart';
 import '../../folder_picker/services/saf_service.dart';
 import '../models/swipe_file.dart';
+import '../services/session_storage_service.dart';
 import 'thumbnail_provider.dart';
 
 /// Provider for SAF service
@@ -170,5 +171,69 @@ class SwipeFilesNotifier extends StateNotifier<SwipeFilesState> {
       toDelete: newToDelete,
       toKeep: newToKeep,
     );
+  }
+
+  /// Save current session for later
+  Future<void> saveSession() async {
+    final folderState = _ref.read(folderProvider);
+    if (folderState.folderPath == null) return;
+
+    final session = SwipeSession(
+      folderUri: folderState.folderPath!,
+      folderName: folderState.folderName ?? 'Unknown',
+      toDeleteUris: state.toDelete.map((f) => f.uri).toList(),
+      toKeepUris: state.toKeep.map((f) => f.uri).toList(),
+      savedAt: DateTime.now(),
+    );
+
+    await SessionStorageService.saveSession(session);
+  }
+
+  /// Restore a saved session
+  Future<void> restoreSession(SwipeSession session) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final safService = _ref.read(safServiceProvider);
+      final allFiles = await safService.listFiles(session.folderUri);
+
+      // Build sets of already-swiped URIs for quick lookup
+      final deletedUris = session.toDeleteUris.toSet();
+      final keptUris = session.toKeepUris.toSet();
+
+      // Separate files into already-swiped and remaining
+      final toDelete = <SwipeFile>[];
+      final toKeep = <SwipeFile>[];
+      final remaining = <SwipeFile>[];
+
+      for (final file in allFiles) {
+        if (deletedUris.contains(file.uri)) {
+          toDelete.add(file);
+        } else if (keptUris.contains(file.uri)) {
+          toKeep.add(file);
+        } else {
+          remaining.add(file);
+        }
+      }
+
+      // Combine: already-swiped first, then remaining
+      final orderedFiles = [...toDelete, ...toKeep, ...remaining];
+
+      state = SwipeFilesState(
+        files: orderedFiles,
+        toDelete: toDelete,
+        toKeep: toKeep,
+        currentIndex: toDelete.length + toKeep.length,
+        isLoading: false,
+      );
+
+      // Clear saved session since we've restored it
+      await SessionStorageService.clearSession();
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to restore session: $e',
+      );
+    }
   }
 }
