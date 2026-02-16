@@ -97,7 +97,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
         if (didPop) return;
         final shouldPop = await _onWillPop();
         if (shouldPop && context.mounted) {
-          Navigator.of(context).pop();
+          context.go('/folder-picker');
         }
       },
       child: Scaffold(
