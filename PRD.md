@@ -114,6 +114,10 @@ SwipeClear turns the tedious task of cleaning your Downloads folder into a satis
 │    We recommend starting with       │
 │    your Downloads folder            │
 │                                     │
+│  ┌─────────────────────────────────┐│
+│  │  Free to swipe · $3.99 to delete││
+│  └─────────────────────────────────┘│
+│                                     │
 │     ┌─────────────────────────┐     │
 │     │   Open Folder Picker    │     │
 │     └─────────────────────────┘     │
@@ -123,6 +127,11 @@ SwipeClear turns the tedious task of cleaning your Downloads folder into a satis
 │                                     │
 └─────────────────────────────────────┘
 ```
+
+**Upfront Pricing Clarity:**
+- Price badge shown on folder picker screen every time
+- Users always know the deal before investing time swiping
+- Prevents "bait and switch" feeling at paywall
 
 ### 3.3 Swipe Interface (Main Screen)
 ```

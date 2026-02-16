@@ -65,6 +65,30 @@ class FolderPickerScreen extends ConsumerWidget {
                 ),
               ),
 
+              const SizedBox(height: AppConstants.spacingLg),
+
+              // Upfront pricing badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.spacingMd,
+                  vertical: AppConstants.spacingSm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accent(context).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusFull),
+                  border: Border.all(
+                    color: AppColors.accent(context).withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  'Free to swipe · \$3.99 to delete',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.accent(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+
               const Spacer(),
 
               // Quick-select Downloads button
