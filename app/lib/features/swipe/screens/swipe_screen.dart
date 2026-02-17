@@ -4,13 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
-import '../../../core/utils/file_utils.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/polished_widgets.dart';
 import '../../folder_picker/providers/folder_provider.dart';
 import '../providers/swipe_files_provider.dart';
 import '../providers/thumbnail_provider.dart';
+import '../services/session_storage_service.dart';
 import '../widgets/swipe_stack.dart';
 
 /// Main swipe screen for reviewing files
@@ -113,16 +112,46 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(folderState.folderName ?? 'Files'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(folderState.folderName ?? 'Files'),
+            if (!swipeState.isLoading && swipeState.files.isNotEmpty)
+              Text(
+                '${swipeState.remainingCount} files left',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.muted(context),
+                ),
+              ),
+          ],
+        ),
         actions: [
-          if (!swipeState.isLoading && swipeState.files.isNotEmpty)
+          if (!swipeState.isLoading && swipeState.toDelete.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: AppConstants.spacingMd),
               child: Center(
-                child: Text(
-                  '${swipeState.remainingCount} files',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.muted(context),
+                child: FilledButton.icon(
+                  onPressed: () => context.push('/review'),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                  ),
+                  label: Text(
+                    '${swipeState.toDelete.length} to clear',
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.delete(context),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spacingMd,
+                      vertical: AppConstants.spacingSm,
+                    ),
+                    textStyle: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.radiusFull),
+                    ),
                   ),
                 ),
               ),
@@ -130,7 +159,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
         ],
       ),
       body: _buildBody(context, swipeState, theme),
-      bottomNavigationBar: _buildBottomBar(context, swipeState, theme),
     ),
     );
   }
@@ -281,9 +309,10 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
           const SizedBox(height: AppConstants.spacingMd),
 
           // Swipe indicators + buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
+          SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
               // Delete button
               _SwipeButton(
                 icon: Icons.close_rounded,
@@ -291,7 +320,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
                 color: AppColors.delete(context),
                 onPressed: _swipeLeft,
               ),
-              // Keep button
               _SwipeButton(
                 icon: Icons.check_rounded,
                 label: 'KEEP',
@@ -299,64 +327,13 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
                 onPressed: _swipeRight,
               ),
             ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget? _buildBottomBar(
-    BuildContext context,
-    SwipeFilesState swipeState,
-    ThemeData theme,
-  ) {
-    if (swipeState.isLoading ||
-        swipeState.isEmpty ||
-        swipeState.toDelete.isEmpty) {
-      return null;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.spacingMd),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        border: Border(
-          top: BorderSide(
-            color: AppColors.muted(context).withOpacity(0.2),
-          ),
-        ),
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Icon(
-              Icons.delete_outline,
-              color: AppColors.delete(context),
-            ),
-            const SizedBox(width: AppConstants.spacingXs),
-            Expanded(
-              child: Text(
-                '${swipeState.toDelete.length} files · ${FileUtils.formatBytes(swipeState.toDeleteSizeBytes)}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.muted(context),
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => context.push('/review'),
-              child: Text(
-                'Review',
-                style: TextStyle(
-                  color: AppColors.accent(context),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _SwipeButton extends StatelessWidget {
@@ -540,7 +517,12 @@ class _ExitConfirmationSheet extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
+                    onPressed: () async {
+                      await SessionStorageService.clearSession();
+                      if (context.mounted) {
+                        Navigator.of(context).pop(true);
+                      }
+                    },
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.muted(context),
                       padding: const EdgeInsets.symmetric(

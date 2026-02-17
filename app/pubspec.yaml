@@ -1,7 +1,7 @@
 name: swipecleaner
 description: "Tinder-style swipe interface to clean your Downloads folder"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.5.0
@@ -42,9 +42,23 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.1
   flutter_native_splash: ^2.4.7
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/
+
+# Launcher icon configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_foreground: "assets/icon/icon.png"
+  adaptive_icon_background: "#6B5B95"
+  macos:
+    generate: true
+    image_path: "assets/icon/icon.png"
 
 # Splash screen configuration
 flutter_native_splash:

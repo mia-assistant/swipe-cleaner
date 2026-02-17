@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/utils/file_utils.dart';
 import '../../../core/utils/haptics.dart';
 import '../../folder_picker/services/saf_service.dart';
@@ -138,22 +139,27 @@ class _DeleteAnimationScreenState extends ConsumerState<DeleteAnimationScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background(context),
-      body: Stack(
-        children: [
-          // Vortex background
-          if (_currentPhase >= 1 && !_showSuccess) _buildVortexBackground(),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppGradients.background(context),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            // Vortex background
+            if (_currentPhase >= 1 && !_showSuccess) _buildVortexBackground(),
 
-          // File thumbnails
-          if (!_showSuccess) _buildFileGrid(),
+            // File thumbnails
+            if (!_showSuccess) _buildFileGrid(),
 
-          // Center vortex
-          if (_currentPhase >= 1 && !_showSuccess) _buildCenterVortex(),
+            // Center vortex
+            if (_currentPhase >= 1 && !_showSuccess) _buildCenterVortex(),
 
-          // Success overlay
-          if (_showSuccess) _buildSuccessOverlay(),
-        ],
+            // Success overlay
+            if (_showSuccess) _buildSuccessOverlay(),
+          ],
+        ),
       ),
     );
   }

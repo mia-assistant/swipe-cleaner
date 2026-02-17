@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/polished_widgets.dart';
 import '../providers/onboarding_provider.dart';
+import '../../review/providers/purchase_provider.dart';
 
 /// Onboarding screen shown on first launch
 class OnboardingScreen extends ConsumerWidget {
@@ -15,8 +17,7 @@ class OnboardingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.background(context),
+    return GradientScaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppConstants.spacingLg),
@@ -24,18 +25,20 @@ class OnboardingScreen extends ConsumerWidget {
             children: [
               const Spacer(flex: 2),
 
-              // App Icon Placeholder
+              // App Icon
               Container(
                 width: AppConstants.onboardingIconSize,
                 height: AppConstants.onboardingIconSize,
                 decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: AppColors.accent(context).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppConstants.radiusCard),
                 ),
-                child: Icon(
-                  Icons.cleaning_services_rounded,
-                  size: 48,
-                  color: AppColors.accent(context),
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset(
+                  'assets/icon/icon_rounded.png',
+                  width: AppConstants.onboardingIconSize,
+                  height: AppConstants.onboardingIconSize,
+                  fit: BoxFit.cover,
                 ),
               ),
 
@@ -43,7 +46,7 @@ class OnboardingScreen extends ConsumerWidget {
 
               // Title
               Text(
-                'SwipeClear',
+                'SwipeCleaner',
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -53,7 +56,7 @@ class OnboardingScreen extends ConsumerWidget {
 
               // Subtitle
               Text(
-                'Clean your Downloads folder\nwith satisfying swipes',
+                'Clean any folder\nwith satisfying swipes',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: AppColors.muted(context),
@@ -68,11 +71,16 @@ class OnboardingScreen extends ConsumerWidget {
               const Spacer(),
 
               // Price Disclosure
-              Text(
-                'One-time purchase: \$3.99',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.muted(context),
-                ),
+              Builder(
+                builder: (context) {
+                  final price = ref.watch(purchaseProvider).price;
+                  return Text(
+                    'One-time purchase: ${price ?? '...'}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.muted(context),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: AppConstants.spacingLg),
@@ -141,8 +149,12 @@ class _SwipeInstruction extends StatelessWidget {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withOpacity(0.12),
             shape: BoxShape.circle,
+            border: Border.all(
+              color: color.withOpacity(0.25),
+              width: 1.5,
+            ),
           ),
           child: Icon(
             icon,

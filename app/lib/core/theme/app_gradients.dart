@@ -5,13 +5,13 @@ import 'app_colors.dart';
 class AppGradients {
   AppGradients._();
 
-  // Primary accent gradients (indigo → violet)
+  // Primary accent gradients (deep indigo → violet)
   static const LinearGradient accentLight = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF6366F1), // Indigo 500
-      Color(0xFF8B5CF6), // Violet 500
+      Color(0xFF4F46E5), // Indigo 600
+      Color(0xFF7C3AED), // Violet 600
     ],
   );
 
@@ -19,18 +19,18 @@ class AppGradients {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF818CF8), // Indigo 400
+      Color(0xFF8B5CF6), // Violet 500
       Color(0xFFA78BFA), // Violet 400
     ],
   );
 
-  // Subtle background gradients
+  // Background gradients with visible warmth
   static const LinearGradient backgroundLight = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      Color(0xFFFCFCFD), // Near white
-      Color(0xFFEEEBF8), // Noticeable violet tint
+      Color(0xFFFBFAFE), // Warm near-white with violet tint
+      Color(0xFFEDE9F7), // Clear violet tint
     ],
   );
 
@@ -38,8 +38,8 @@ class AppGradients {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      Color(0xFF0A0A0A),
-      Color(0xFF0F0A1A), // Very subtle violet tint
+      Color(0xFF0A0A0F),
+      Color(0xFF110D1F), // Visible violet dark tint
     ],
   );
 
@@ -49,7 +49,7 @@ class AppGradients {
     end: Alignment.bottomRight,
     colors: [
       Color(0xFFFFFFFF),
-      Color(0xFFFBFAFF), // Hint of violet
+      Color(0xFFF9F7FF), // Noticeable violet tint
     ],
   );
 
@@ -57,8 +57,8 @@ class AppGradients {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF1A1A1F),
-      Color(0xFF171720), // Hint of violet
+      Color(0xFF1A1A22),
+      Color(0xFF181725), // Visible violet tint
     ],
   );
 
@@ -105,7 +105,7 @@ class AppShadows {
   // Soft elevation shadows for light mode
   static List<BoxShadow> cardLight = [
     BoxShadow(
-      color: const Color(0xFF6366F1).withOpacity(0.08),
+      color: const Color(0xFF4F46E5).withOpacity(0.10),
       blurRadius: 24,
       offset: const Offset(0, 8),
       spreadRadius: 0,
@@ -121,7 +121,7 @@ class AppShadows {
   // Subtle glow for dark mode
   static List<BoxShadow> cardDark = [
     BoxShadow(
-      color: const Color(0xFF818CF8).withOpacity(0.1),
+      color: const Color(0xFF8B5CF6).withOpacity(0.12),
       blurRadius: 32,
       offset: const Offset(0, 8),
       spreadRadius: -4,
@@ -131,13 +131,13 @@ class AppShadows {
   // Elevated shadows (buttons, FABs)
   static List<BoxShadow> elevatedLight = [
     BoxShadow(
-      color: const Color(0xFF6366F1).withOpacity(0.25),
+      color: const Color(0xFF4F46E5).withOpacity(0.30),
       blurRadius: 16,
       offset: const Offset(0, 4),
       spreadRadius: 0,
     ),
     BoxShadow(
-      color: const Color(0xFF6366F1).withOpacity(0.1),
+      color: const Color(0xFF4F46E5).withOpacity(0.12),
       blurRadius: 4,
       offset: const Offset(0, 2),
       spreadRadius: 0,
@@ -146,7 +146,7 @@ class AppShadows {
 
   static List<BoxShadow> elevatedDark = [
     BoxShadow(
-      color: const Color(0xFF818CF8).withOpacity(0.2),
+      color: const Color(0xFF8B5CF6).withOpacity(0.25),
       blurRadius: 20,
       offset: const Offset(0, 4),
       spreadRadius: -2,

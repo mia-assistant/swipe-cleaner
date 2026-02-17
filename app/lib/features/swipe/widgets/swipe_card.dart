@@ -47,7 +47,7 @@ class SwipeCard extends ConsumerWidget {
               border: Border.all(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.white.withOpacity(0.08)
-                    : AppColors.lightAccent.withOpacity(0.1),
+                    : AppColors.lightAccent.withOpacity(0.12),
                 width: 1,
               ),
               boxShadow: isFront

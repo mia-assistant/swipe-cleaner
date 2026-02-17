@@ -10,6 +10,7 @@ import '../../../shared/widgets/polished_widgets.dart';
 import '../../swipe/providers/swipe_files_provider.dart';
 import '../../swipe/services/session_storage_service.dart';
 import '../providers/folder_provider.dart';
+import '../../review/providers/purchase_provider.dart';
 
 /// Screen for selecting a folder to clean
 class FolderPickerScreen extends ConsumerStatefulWidget {
@@ -72,18 +73,11 @@ class _FolderPickerScreenState extends ConsumerState<FolderPickerScreen> {
     final theme = Theme.of(context);
 
     return GradientScaffold(
-      appBar: AppBar(
-        title: const Text('Select Folder'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppConstants.spacingLg),
           child: Column(
             children: [
-              const Spacer(flex: 2),
-
               // Saved session card
               if (!_checkingSession && _savedSession != null) ...[
                 _SavedSessionCard(
@@ -131,30 +125,80 @@ class _FolderPickerScreenState extends ConsumerState<FolderPickerScreen> {
 
               const SizedBox(height: AppConstants.spacingLg),
 
-              // Upfront pricing badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingMd,
-                  vertical: AppConstants.spacingSm,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.accent(context).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppConstants.radiusFull),
-                  border: Border.all(
-                    color: AppColors.accent(context).withOpacity(0.3),
-                  ),
-                ),
-                child: Text(
-                  'Free to swipe · \$3.99 to delete',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.accent(context),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              // Upfront pricing badge + unlock button
+              Builder(
+                builder: (context) {
+                  final purchaseState = ref.watch(purchaseProvider);
+                  final price = purchaseState.price;
+
+                  if (purchaseState.isUnlocked) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.spacingMd,
+                          vertical: AppConstants.spacingSm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent(context).withOpacity(0.1),
+                          borderRadius: BorderRadius.horizontal(
+                            left: Radius.circular(AppConstants.radiusFull),
+                          ),
+                          border: Border.all(
+                            color: AppColors.accent(context).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Text(
+                          'Free to swipe · ${price ?? '...'} to delete',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.accent(context),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          ref.read(purchaseProvider.notifier).purchase();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppConstants.spacingMd,
+                            vertical: AppConstants.spacingSm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent(context),
+                            borderRadius: BorderRadius.horizontal(
+                              right: Radius.circular(AppConstants.radiusFull),
+                            ),
+                          ),
+                          child: purchaseState.isLoading
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  'Unlock',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: AppConstants.spacingXl),
-              const Spacer(),
 
               // Quick-select Downloads button
               AppButton(
@@ -169,8 +213,8 @@ class _FolderPickerScreenState extends ConsumerState<FolderPickerScreen> {
                         final success = await ref
                             .read(folderProvider.notifier)
                             .selectDownloads();
-                        if (success && context.mounted) {
-                          context.go('/swipe');
+                        if (success && context.mounted) {                          await SessionStorageService.clearSession();
+                          ref.read(swipeFilesProvider.notifier).reset();                          context.go('/swipe');
                         }
                       },
               ),
@@ -220,6 +264,7 @@ class _FolderPickerScreenState extends ConsumerState<FolderPickerScreen> {
                         if (success && context.mounted) {
                           // Clear any saved session when starting fresh
                           await SessionStorageService.clearSession();
+                          ref.read(swipeFilesProvider.notifier).reset();
                           context.go('/swipe');
                         }
                       },
@@ -247,7 +292,7 @@ class _FolderPickerScreenState extends ConsumerState<FolderPickerScreen> {
                     const SizedBox(width: AppConstants.spacingSm),
                     Expanded(
                       child: Text(
-                        'We can only delete files you explicitly swipe left on',
+                        'We only delete files you swipe left on, and you\'ll review them before anything is removed',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: AppColors.muted(context),
                         ),
@@ -256,8 +301,6 @@ class _FolderPickerScreenState extends ConsumerState<FolderPickerScreen> {
                   ],
                 ),
               ),
-
-              const Spacer(flex: 2),
             ],
           ),
         ),

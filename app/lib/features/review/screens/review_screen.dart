@@ -8,6 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/file_utils.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/polished_widgets.dart';
 import '../../swipe/models/swipe_file.dart';
 import '../../swipe/providers/swipe_files_provider.dart';
 import '../../swipe/providers/thumbnail_provider.dart';
@@ -24,8 +25,7 @@ class ReviewScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final toDelete = swipeState.toDelete;
 
-    return Scaffold(
-      backgroundColor: AppColors.background(context),
+    return GradientScaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -160,10 +160,10 @@ class ReviewScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(AppConstants.spacingMd),
           decoration: BoxDecoration(
-            color: AppColors.surface(context),
+            color: AppColors.surface(context).withOpacity(0.85),
             border: Border(
               top: BorderSide(
-                color: AppColors.muted(context).withOpacity(0.2),
+                color: AppColors.muted(context).withOpacity(0.15),
               ),
             ),
           ),
@@ -174,7 +174,7 @@ class ReviewScreen extends ConsumerWidget {
                 AppButton(
                   text: purchaseState.isUnlocked
                       ? '🗑️  Clear ${toDelete.length} Files'
-                      : '🗑️  Clear All  \$3.99',
+                      : '🗑️  Clear All  ${purchaseState.price ?? '...'}',
                   onPressed: () {
                     if (purchaseState.isUnlocked) {
                       context.go('/delete');
@@ -320,7 +320,7 @@ class _FileGridItem extends ConsumerWidget {
   }
 }
 
-class _PaywallSheet extends StatelessWidget {
+class _PaywallSheet extends ConsumerWidget {
   final VoidCallback onPurchase;
   final VoidCallback onCancel;
 
@@ -330,8 +330,9 @@ class _PaywallSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final price = ref.watch(purchaseProvider).price;
 
     return Container(
       decoration: BoxDecoration(
@@ -388,7 +389,7 @@ class _PaywallSheet extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      '\$3.99',
+                      price ?? '...',
                       style: theme.textTheme.displayMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.accent(context),
