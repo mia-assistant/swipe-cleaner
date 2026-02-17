@@ -41,6 +41,23 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  flutter_native_splash: ^2.4.7
 
 flutter:
   uses-material-design: true
+
+# Splash screen configuration
+flutter_native_splash:
+  color: "#6B5B95"
+  image: assets/icon/icon_rounded.png
+  
+  # Android 12+ uses this for the centered icon
+  android_12:
+    color: "#6B5B95"
+    image: assets/icon/icon_rounded.png
+  
+  # iOS
+  ios: true
+  
+  # Web (if needed later)
+  web: false
