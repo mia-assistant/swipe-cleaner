@@ -439,12 +439,12 @@ class _ExitConfirmationSheet extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.delete(context).withOpacity(0.1),
+              color: AppColors.accent(context).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.exit_to_app_rounded,
-              color: AppColors.delete(context),
+              Icons.coffee_rounded,
+              color: AppColors.accent(context),
               size: 28,
             ),
           ),
@@ -453,7 +453,7 @@ class _ExitConfirmationSheet extends StatelessWidget {
 
           // Title
           Text(
-            'Leave without saving?',
+            'Taking a break?',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -486,11 +486,13 @@ class _ExitConfirmationSheet extends StatelessWidget {
             ),
             child: Column(
               children: [
-                // Continue swiping
+                // Keep going
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
+                  child: FilledButton.icon(
                     onPressed: () => Navigator.of(context).pop(false),
+                    icon: const Icon(Icons.swipe_rounded, size: 20),
+                    label: const Text('Keep Going'),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.accent(context),
                       padding: const EdgeInsets.symmetric(
@@ -502,7 +504,6 @@ class _ExitConfirmationSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                    child: const Text('Continue Swiping'),
                   ),
                 ),
 
@@ -511,11 +512,13 @@ class _ExitConfirmationSheet extends StatelessWidget {
                 // Save and continue later
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton(
+                  child: OutlinedButton.icon(
                     onPressed: () {
                       onSaveAndExit();
                       Navigator.of(context).pop(true);
                     },
+                    icon: const Icon(Icons.bookmark_outline_rounded, size: 20),
+                    label: const Text('Continue Later'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.accent(context),
                       side: BorderSide(color: AppColors.accent(context)),
@@ -528,7 +531,6 @@ class _ExitConfirmationSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                    child: const Text('Continue Later'),
                   ),
                 ),
 
