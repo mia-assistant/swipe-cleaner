@@ -10,8 +10,8 @@ import '../../features/swipe/models/swipe_file.dart';
 
 /// Service for generating and caching file thumbnails.
 ///
-/// Generates video and PDF thumbnails and caches them to a temp directory.
-/// Image precaching is handled separately via Flutter's [precacheImage].
+/// Generates video and PDF thumbnails from local file copies and
+/// caches them to a temp directory.
 class ThumbnailService {
   ThumbnailService._();
   static final instance = ThumbnailService._();
@@ -34,9 +34,10 @@ class ThumbnailService {
   /// Whether thumbnail generation is in progress for [uri].
   bool isGenerating(String uri) => _inProgress.contains(uri);
 
-  /// Generates a thumbnail for [file] and caches it.
+  /// Generates a thumbnail for [file] from a [localPath] and caches it.
+  /// The [localPath] is a local filesystem copy of the SAF document.
   /// Returns the path to the generated thumbnail, or null on failure.
-  Future<String?> generateThumbnail(SwipeFile file) async {
+  Future<String?> generateThumbnail(SwipeFile file, String localPath) async {
     // Already cached
     if (_cache.containsKey(file.uri)) return _cache[file.uri];
 
@@ -45,23 +46,23 @@ class ThumbnailService {
 
     // Route to the right generator
     if (file.type == FileType.video) {
-      return _generateVideoThumbnail(file);
+      return _generateVideoThumbnail(file, localPath);
     } else if (file.type == FileType.pdf) {
-      return _generatePdfThumbnail(file);
+      return _generatePdfThumbnail(file, localPath);
     }
 
     return null;
   }
 
   /// Generates a thumbnail from the first frame of a video.
-  Future<String?> _generateVideoThumbnail(SwipeFile file) async {
+  Future<String?> _generateVideoThumbnail(SwipeFile file, String localPath) async {
     _inProgress.add(file.uri);
 
     try {
       _cacheDir ??= (await getTemporaryDirectory()).path;
 
       final thumbnailPath = await VideoThumbnail.thumbnailFile(
-        video: file.uri,
+        video: localPath,
         thumbnailPath: _cacheDir,
         imageFormat: ImageFormat.JPEG,
         maxWidth: 600,
@@ -82,13 +83,13 @@ class ThumbnailService {
   }
 
   /// Renders the first page of a PDF to a JPEG thumbnail.
-  Future<String?> _generatePdfThumbnail(SwipeFile file) async {
+  Future<String?> _generatePdfThumbnail(SwipeFile file, String localPath) async {
     _inProgress.add(file.uri);
 
     try {
       _cacheDir ??= (await getTemporaryDirectory()).path;
 
-      final document = await PdfDocument.openFile(file.uri);
+      final document = await PdfDocument.openFile(localPath);
       final page = await document.getPage(1);
 
       final pageImage = await page.render(
@@ -118,27 +119,6 @@ class ThumbnailService {
     }
 
     return null;
-  }
-
-  /// Precaches an image file into Flutter's image cache so it displays
-  /// instantly when the card is shown.
-  Future<void> precacheImageFile(
-    String filePath,
-    BuildContext context,
-  ) async {
-    try {
-      final file = File(filePath);
-      if (await file.exists()) {
-        final provider = ResizeImage(
-          FileImage(file),
-          width: 600,
-        );
-        // ignore: use_build_context_synchronously
-        await precacheImage(provider, context);
-      }
-    } catch (e) {
-      // Non-critical — image will load when displayed
-    }
   }
 
   /// Clears the in-memory cache (e.g. on folder change).

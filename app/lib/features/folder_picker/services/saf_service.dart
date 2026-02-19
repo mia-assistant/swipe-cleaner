@@ -1,71 +1,61 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
-import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/utils/file_utils.dart';
 import '../../swipe/models/swipe_file.dart';
 
-/// Service for SAF (Storage Access Framework) operations
-/// Uses file_picker for directory selection, dart:io for file operations
+/// Service for SAF (Storage Access Framework) operations.
+/// Uses a Kotlin platform channel for all file access via content URIs.
 class SAFService {
-  /// Opens the SAF directory picker and returns the selected path
-  Future<String?> pickFolder() async {
-    final result = await FilePicker.platform.getDirectoryPath();
-    return result;
+  static const _channel = MethodChannel('com.manuelpa.swipecleaner/saf');
+
+  String? _cacheDir;
+
+  /// Opens the SAF directory picker and returns {uri, name} or null.
+  Future<({String uri, String name})?> pickFolder() async {
+    final result = await _channel.invokeMethod('pickDirectory');
+    if (result == null) return null;
+    final map = Map<String, dynamic>.from(result as Map);
+    return (uri: map['uri'] as String, name: map['name'] as String);
   }
 
-  /// Returns the path to the Downloads folder if accessible.
-  /// Requests MANAGE_EXTERNAL_STORAGE permission on Android 11+.
-  /// Returns null if permission is denied.
-  Future<String?> pickDownloadsFolder() async {
-    if (!Platform.isAndroid) {
-      // On non-Android platforms, fall back to the regular picker
-      return pickFolder();
-    }
-
-    final granted = await _requestStoragePermission();
-    if (!granted) return null;
-
-    const downloadsPath = '/storage/emulated/0/Download';
-    final dir = Directory(downloadsPath);
-    if (await dir.exists()) {
-      return downloadsPath;
-    }
-    return null;
+  /// Opens the SAF directory picker pre-navigated to Downloads.
+  /// Returns {uri, name} or null if the user cancelled.
+  Future<({String uri, String name})?> pickDownloadsFolder() async {
+    final result = await _channel.invokeMethod(
+      'pickDirectory',
+      {'startWithDownloads': true},
+    );
+    if (result == null) return null;
+    final map = Map<String, dynamic>.from(result as Map);
+    return (uri: map['uri'] as String, name: map['name'] as String);
   }
 
-  /// Requests the appropriate storage permission.
-  /// Returns true if granted.
-  Future<bool> _requestStoragePermission() async {
-    // Android 11+ (API 30+): need MANAGE_EXTERNAL_STORAGE
-    final status = await Permission.manageExternalStorage.status;
-    if (status.isGranted) return true;
+  /// Lists all files in a SAF tree URI.
+  Future<List<SwipeFile>> listFiles(String treeUri) async {
+    final result = await _channel.invokeMethod('listFiles', {'treeUri': treeUri});
+    if (result == null) return [];
 
-    final result = await Permission.manageExternalStorage.request();
-    return result.isGranted;
-  }
+    final list = (result as List).cast<Map>();
+    final files = list.map((map) {
+      final name = map['name'] as String;
+      final extension = FileUtils.getExtension(name);
+      final type = FileUtils.detectFileType(extension);
 
-  /// Lists all files in the selected folder
-  /// Returns a list of SwipeFile objects
-  Future<List<SwipeFile>> listFiles(String folderPath) async {
-    final directory = Directory(folderPath);
-
-    if (!await directory.exists()) {
-      return [];
-    }
-
-    final files = <SwipeFile>[];
-
-    await for (final entity in directory.list(followLinks: false)) {
-      if (entity is File) {
-        final fileInfo = await getFileInfo(entity.path);
-        if (fileInfo != null) {
-          files.add(fileInfo);
-        }
-      }
-    }
+      return SwipeFile(
+        uri: map['uri'] as String,
+        name: name,
+        extension: extension,
+        sizeBytes: (map['sizeBytes'] as num).toInt(),
+        modified: DateTime.fromMillisecondsSinceEpoch(
+          (map['modified'] as num).toInt(),
+        ),
+        type: type,
+      );
+    }).toList();
 
     // Sort by modified date, newest first
     files.sort((a, b) => b.modified.compareTo(a.modified));
@@ -73,64 +63,67 @@ class SAFService {
     return files;
   }
 
-  /// Gets detailed file information
-  Future<SwipeFile?> getFileInfo(String path) async {
-    try {
-      final file = File(path);
-
-      if (!await file.exists()) {
-        return null;
-      }
-
-      final stat = await file.stat();
-      final name = p.basename(path);
-      final extension = FileUtils.getExtension(name);
-      final type = FileUtils.detectFileType(extension);
-
-      return SwipeFile(
-        uri: path,
-        name: name,
-        extension: extension,
-        sizeBytes: stat.size,
-        modified: stat.modified,
-        type: type,
-      );
-    } catch (e) {
-      // File might not be accessible
-      return null;
-    }
+  /// Deletes a document by its SAF content URI.
+  Future<bool> deleteDocument(String uri) async {
+    final result = await _channel.invokeMethod<bool>(
+      'deleteDocument',
+      {'uri': uri},
+    );
+    return result ?? false;
   }
 
-  /// Deletes files by their paths
-  /// Returns the number of successfully deleted files
-  Future<int> deleteFiles(List<String> filePaths) async {
-    int deletedCount = 0;
-
-    for (final path in filePaths) {
+  /// Deletes multiple documents. Returns the count of successfully deleted.
+  Future<int> deleteFiles(List<String> uris) async {
+    int deleted = 0;
+    for (final uri in uris) {
       try {
-        final file = File(path);
-        if (await file.exists()) {
-          await file.delete();
-          deletedCount++;
-        }
-      } catch (e) {
-        // Continue with other files if one fails
+        if (await deleteDocument(uri)) deleted++;
+      } catch (_) {}
+    }
+    return deleted;
+  }
+
+  /// Deletes a single file (alias for deleteDocument).
+  Future<void> deleteFile(String uri) async {
+    await deleteDocument(uri);
+  }
+
+  /// Copies a SAF document to local cache for display/processing.
+  /// Returns the local filesystem path.
+  Future<String> copyToCache(String contentUri, String fileName) async {
+    _cacheDir ??= '${(await getTemporaryDirectory()).path}/saf_cache';
+
+    // Use hash of content URI + original extension for uniqueness
+    final cacheKey = contentUri.hashCode.toRadixString(16);
+    final ext = p.extension(fileName);
+    final destPath = '$_cacheDir/$cacheKey$ext';
+
+    // Return immediately if already cached
+    if (await File(destPath).exists()) return destPath;
+
+    final result = await _channel.invokeMethod<String>(
+      'copyToCache',
+      {'uri': contentUri, 'destPath': destPath},
+    );
+
+    return result ?? destPath;
+  }
+
+  /// Clears the local SAF cache.
+  Future<void> clearCache() async {
+    if (_cacheDir != null) {
+      final dir = Directory(_cacheDir!);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
       }
     }
-
-    return deletedCount;
+    _cacheDir = null;
   }
 
-  /// Deletes a single file by path
-  Future<void> deleteFile(String path) async {
-    final file = File(path);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
-  /// Gets the display name of a folder from its path
-  String getFolderName(String folderPath) {
-    return p.basename(folderPath);
+  /// Gets the display name of a folder.
+  /// Used as fallback; prefer the name returned by pickFolder().
+  String getFolderName(String uriOrName) {
+    if (!uriOrName.contains('/')) return uriOrName;
+    return Uri.parse(uriOrName).pathSegments.lastOrNull ?? uriOrName;
   }
 }

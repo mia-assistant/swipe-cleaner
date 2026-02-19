@@ -269,18 +269,7 @@ class _FileGridItem extends ConsumerWidget {
   }
 
   Widget _buildPreview(BuildContext context, String? cachedThumbnail) {
-    // Image files — load directly
-    if (file.type == FileType.image) {
-      return Image.file(
-        File(file.uri),
-        fit: BoxFit.cover,
-        width: double.infinity,
-        cacheWidth: 200,
-        errorBuilder: (_, __, ___) => _iconFallback(context),
-      );
-    }
-
-    // Video with cached thumbnail
+    // Image/Video/PDF with cached local path or thumbnail
     if (cachedThumbnail != null) {
       return Stack(
         fit: StackFit.expand,
@@ -292,16 +281,17 @@ class _FileGridItem extends ConsumerWidget {
             cacheWidth: 200,
             errorBuilder: (_, __, ___) => _iconFallback(context),
           ),
-          Center(
-            child: Icon(
-              Icons.play_arrow_rounded,
-              color: Colors.white.withOpacity(0.9),
-              size: 22,
-              shadows: const [
-                Shadow(blurRadius: 4, color: Colors.black54),
-              ],
+          if (file.type == FileType.video)
+            Center(
+              child: Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white.withOpacity(0.9),
+                size: 22,
+                shadows: const [
+                  Shadow(blurRadius: 4, color: Colors.black54),
+                ],
+              ),
             ),
-          ),
         ],
       );
     }

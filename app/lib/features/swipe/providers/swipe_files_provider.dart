@@ -6,8 +6,8 @@ import '../models/swipe_file.dart';
 import '../services/session_storage_service.dart';
 import 'thumbnail_provider.dart';
 
-/// Provider for SAF service
-final safServiceProvider = Provider((ref) => SAFService());
+/// Provider for SAF service (local to swipe feature)
+final _safServiceProvider = Provider((ref) => SAFService());
 
 /// Provider for swipe files state
 final swipeFilesProvider =
@@ -99,7 +99,7 @@ class SwipeFilesNotifier extends StateNotifier<SwipeFilesState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final safService = _ref.read(safServiceProvider);
+      final safService = _ref.read(_safServiceProvider);
       final files = await safService.listFiles(folderState.folderPath!);
 
       state = SwipeFilesState(
@@ -194,7 +194,7 @@ class SwipeFilesNotifier extends StateNotifier<SwipeFilesState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final safService = _ref.read(safServiceProvider);
+      final safService = _ref.read(_safServiceProvider);
       final allFiles = await safService.listFiles(session.folderUri);
 
       // Build sets of already-swiped URIs for quick lookup

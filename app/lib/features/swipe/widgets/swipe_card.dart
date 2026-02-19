@@ -133,22 +133,9 @@ class SwipeCard extends ConsumerWidget {
   }
 
   Widget _buildThumbnail(BuildContext context, Map<String, String?> thumbnailCache) {
-    // Show actual image preview for image files
-    if (file.type == FileType.image) {
-      return Container(
-        color: file.typeColor(context).withOpacity(0.08),
-        width: double.infinity,
-        child: Image.file(
-          File(file.uri),
-          fit: BoxFit.cover,
-          cacheWidth: 600, // limit decode size for performance
-          errorBuilder: (context, error, stackTrace) => _buildIconFallback(context),
-        ),
-      );
-    }
-
-    // Show cached video thumbnail
     final cachedPath = thumbnailCache[file.uri];
+
+    // Cached display path available (image copy, or video/PDF thumbnail)
     if (cachedPath != null) {
       return Container(
         color: file.typeColor(context).withOpacity(0.08),
@@ -183,23 +170,13 @@ class SwipeCard extends ConsumerWidget {
       );
     }
 
-    // Show thumbnail from model path if available
-    if (file.thumbnailPath != null) {
-      return Container(
-        color: file.typeColor(context).withOpacity(0.08),
-        width: double.infinity,
-        child: Image.file(
-          File(file.thumbnailPath!),
-          fit: BoxFit.cover,
-          cacheWidth: 600,
-          errorBuilder: (context, error, stackTrace) => _buildIconFallback(context),
-        ),
-      );
+    // In-progress: show icon with spinner
+    if (file.canHaveThumbnail && thumbnailCache.containsKey(file.uri)) {
+      return _buildIconFallback(context, showLoading: true);
     }
 
-    // Video/PDF still loading thumbnail — show icon with spinner
-    if ((file.type == FileType.video || file.type == FileType.pdf) &&
-        thumbnailCache.containsKey(file.uri)) {
+    // File type supports display but not cached yet — show loading
+    if (file.canHaveThumbnail) {
       return _buildIconFallback(context, showLoading: true);
     }
 

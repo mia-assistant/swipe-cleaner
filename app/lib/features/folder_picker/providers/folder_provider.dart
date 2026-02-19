@@ -52,24 +52,22 @@ class FolderNotifier extends StateNotifier<FolderState> {
 
   FolderNotifier(this._safService) : super(const FolderState());
 
-  /// Opens the folder picker and updates state
+  /// Opens the SAF folder picker and updates state
   Future<bool> pickFolder() async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final folderPath = await _safService.pickFolder();
+      final result = await _safService.pickFolder();
 
-      if (folderPath == null) {
+      if (result == null) {
         // User cancelled
         state = state.copyWith(isLoading: false);
         return false;
       }
 
-      final folderName = _safService.getFolderName(folderPath);
-
       state = state.copyWith(
-        folderPath: folderPath,
-        folderName: folderName,
+        folderPath: result.uri,
+        folderName: result.name,
         isLoading: false,
       );
 
@@ -88,27 +86,25 @@ class FolderNotifier extends StateNotifier<FolderState> {
     state = state.copyWith(clearFolder: true);
   }
 
-  /// Selects the Downloads folder directly, bypassing SAF picker
+  /// Opens the SAF picker pre-navigated to Downloads
   Future<bool> selectDownloads() async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final folderPath = await _safService.pickDownloadsFolder();
+      final result = await _safService.pickDownloadsFolder();
 
-      if (folderPath == null) {
+      if (result == null) {
         state = state.copyWith(
           isLoading: false,
-          error: 'Storage permission is required to access Downloads. '
-              'Please grant it in Settings.',
+          error: 'Folder selection cancelled. '
+              'Please select a folder to continue.',
         );
         return false;
       }
 
-      final folderName = _safService.getFolderName(folderPath);
-
       state = state.copyWith(
-        folderPath: folderPath,
-        folderName: folderName,
+        folderPath: result.uri,
+        folderName: result.name,
         isLoading: false,
       );
 

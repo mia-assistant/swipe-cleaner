@@ -37,18 +37,13 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
     });
   }
 
-  /// Preload thumbnails and precache images for upcoming files.
+  /// Preload display paths for upcoming files.
   void _preloadThumbnails() {
     final swipeState = ref.read(swipeFilesProvider);
     if (swipeState.files.isEmpty) return;
 
     final cacheNotifier = ref.read(thumbnailCacheProvider.notifier);
     cacheNotifier.preload(swipeState.files, swipeState.currentIndex);
-    cacheNotifier.precacheImages(
-      swipeState.files,
-      swipeState.currentIndex,
-      context,
-    );
   }
 
   /// Show exit confirmation when user has swiped files
